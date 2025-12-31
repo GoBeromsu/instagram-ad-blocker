@@ -1,7 +1,7 @@
 {
-  "name": "instagram-ad-blocker",
+  "name": "instafocus",
   "version": "1.0.0",
-  "description": "Block sponsored ads and recommended posts from Instagram feed",
+  "description": "Block ads, reels, and suggestions on Instagram. Distraction-free focus mode.",
   "type": "module",
   "scripts": {
     "dev": "vite",
