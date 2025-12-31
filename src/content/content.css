@@ -1,0 +1,50 @@
+/**
+ * Instagram Ad & Recommendation Blocker
+ * Content Styles
+ */
+
+/* Hide blocked posts with smooth transition */
+.ig-blocker-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Alternative: Collapse with animation (optional) */
+.ig-blocker-collapsing {
+  opacity: 0;
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: all 0.3s ease-out;
+  height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Debug mode - show blocked posts with visual indicator */
+.ig-blocker-debug .ig-blocker-hidden {
+  display: block !important;
+  visibility: visible !important;
+  height: auto !important;
+  opacity: 0.3;
+  position: relative;
+  border: 2px dashed #ff4444 !important;
+}
+
+.ig-blocker-debug .ig-blocker-hidden::before {
+  content: attr(data-blocked-type) ' blocked';
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #ff4444;
+  color: white;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 9999;
+  text-transform: uppercase;
+}
