@@ -82,7 +82,7 @@ class InstagramBlocker {
       (
         message: Message,
         _sender: chrome.runtime.MessageSender,
-        sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void
+        sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void,
       ) => {
         this.handleMessage(message, sendResponse);
         return true;
@@ -92,7 +92,7 @@ class InstagramBlocker {
 
   private handleMessage(
     message: Message,
-    sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void
+    sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void,
   ): void {
     switch (message.type) {
       case 'GET_STATUS':
@@ -253,11 +253,7 @@ class InstagramBlocker {
     if (!header) return false;
 
     // Find leaf text nodes that contain sponsored keywords
-    const walker = document.createTreeWalker(
-      header,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
+    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
 
     let node: Node | null;
     while ((node = walker.nextNode())) {
@@ -281,11 +277,7 @@ class InstagramBlocker {
     if (!header) return false;
 
     // Find leaf text nodes that contain recommendation keywords
-    const walker = document.createTreeWalker(
-      header,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
+    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
 
     let node: Node | null;
     while ((node = walker.nextNode())) {
@@ -333,7 +325,7 @@ class InstagramBlocker {
     const children = Array.from(el.children);
 
     // Hide all original children first
-    children.forEach(child => {
+    children.forEach((child) => {
       (child as HTMLElement).style.display = 'none';
     });
 
