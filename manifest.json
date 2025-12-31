@@ -24,13 +24,13 @@
     "128": "assets/icons/icon128.png"
   },
   "background": {
-    "service_worker": "src/background/background.js",
+    "service_worker": "src/background/background.ts",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["https://www.instagram.com/*"],
-      "js": ["src/content/content.js"],
+      "js": ["src/content/content.ts"],
       "css": ["src/content/content.css"],
       "run_at": "document_idle"
     }

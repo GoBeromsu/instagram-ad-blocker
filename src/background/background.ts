@@ -3,8 +3,10 @@
  * Background Service Worker
  */
 
+import type { BlockedCount, Message } from '@/types';
+
 // Track blocked count across tabs
-let globalBlockedCount = { ads: 0, recommendations: 0 };
+let globalBlockedCount: BlockedCount = { ads: 0, recommendations: 0 };
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
@@ -21,33 +23,42 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 // Listen for messages from content scripts
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  switch (message.type) {
-    case 'POST_BLOCKED':
-      handlePostBlocked(message, sender);
-      break;
+chrome.runtime.onMessage.addListener(
+  (
+    message: Message,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: BlockedCount) => void
+  ) => {
+    switch (message.type) {
+      case 'POST_BLOCKED':
+        handlePostBlocked(message.count, sender);
+        break;
 
-    case 'GET_GLOBAL_COUNT':
-      sendResponse(globalBlockedCount);
-      break;
+      case 'GET_GLOBAL_COUNT':
+        sendResponse(globalBlockedCount);
+        break;
+    }
+
+    return true;
   }
+);
 
-  return true;
-});
-
-function handlePostBlocked(message, sender) {
-  globalBlockedCount = message.count;
+function handlePostBlocked(
+  count: BlockedCount,
+  sender: chrome.runtime.MessageSender
+): void {
+  globalBlockedCount = count;
 
   // Update badge to show blocked count
   const total = globalBlockedCount.ads + globalBlockedCount.recommendations;
-  if (total > 0) {
+  if (total > 0 && sender.tab?.id) {
     chrome.action.setBadgeText({
       text: total.toString(),
-      tabId: sender.tab?.id,
+      tabId: sender.tab.id,
     });
     chrome.action.setBadgeBackgroundColor({
       color: '#e74c3c',
-      tabId: sender.tab?.id,
+      tabId: sender.tab.id,
     });
   }
 }
