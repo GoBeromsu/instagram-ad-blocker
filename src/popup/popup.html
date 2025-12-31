@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Instagram Blocker</title>
+    <title>InstaFocus</title>
     <link rel="stylesheet" href="popup.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap"
@@ -11,36 +11,153 @@
     />
   </head>
   <body>
-    <div class="app-container">
-      <header class="header">
-        <h1 class="app-title">InstaFocus</h1>
-        <div class="master-switch-container">
-          <label class="switch">
-            <input type="checkbox" id="enableToggle" />
-            <span class="slider round"></span>
-          </label>
-        </div>
-      </header>
+    <!-- The app container now acts as a viewport for our sliding pages -->
+    <div id="app" class="app-viewport">
+      
+      <!-- PAGE 1: HOME -->
+      <div id="page-home" class="page active">
+        <header class="header-hero">
+          <h1 class="app-title">InstaFocus</h1>
+        </header>
 
-      <div id="statsSection" class="stats-section" style="display: none;">
-        <div class="stats-row">
-          <span class="stats-label">Blocked this session</span>
-          <span id="blockedCount" class="stats-value">0</span>
-        </div>
+        <main class="scroll-content">
+          <!-- Master Toggle (Airplane Mode style) -->
+          <div class="ios-list-group">
+            <label class="ios-list-item">
+              <div class="ios-list-content">
+                <div class="ios-icon-container" style="background-color: #34C759">
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
+                <span class="ios-list-text" id="masterStatusText">Enabled</span>
+              </div>
+              <div class="switch">
+                <input type="checkbox" id="masterToggle" />
+                <span class="slider round"></span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Stats Card -->
+          <div id="statsCard" class="ios-card stats-hidden">
+            <div class="stats-row">
+              <span class="stats-label">Blocked Items</span>
+              <span id="blockedCount" class="stats-value">0</span>
+            </div>
+          </div>
+
+          <!-- Menu Group: Features -->
+          <div class="ios-list-group">
+            <div class="ios-list-item is-link" id="btn-feed-settings">
+              <div class="ios-list-content">
+                <div class="ios-icon-container" style="background-color: #007AFF;">
+                  <!-- Icon: Feed -->
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M4 4H20V20H4V4M6 6V18H18V6H6Z" /></svg>
+                </div>
+                <span class="ios-list-text">Feed</span>
+              </div>
+              <div class="ios-chevron">›</div>
+            </div>
+            
+            <!-- We can put dev utils here too for a more 'General' settings feel, but keeping separate is fine -->
+            <div class="ios-list-item is-link" id="btn-dev-utils">
+              <div class="ios-list-content">
+                <div class="ios-icon-container" style="background-color: #8E8E93;">
+                  <!-- Icon: Terminal/Code -->
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" /></svg>
+                </div>
+                <span class="ios-list-text">Utilities</span>
+              </div>
+              <div class="ios-chevron">›</div>
+            </div>
+          </div>
+
+          <!-- Menu Group: Support -->
+          <div class="ios-list-group">
+            <div class="ios-list-item is-link" id="btn-contact">
+              <div class="ios-list-content">
+                 <!-- Mail icon -->
+                 <div class="ios-icon-container" style="background-color: #5AC8FA;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                </div>
+                <span class="ios-list-text">Contact Developer</span>
+              </div>
+              <div class="ios-chevron">›</div>
+            </div>
+          </div>
+          
+          <div class="ios-footer-note">
+            Built for peace of mind.
+          </div>
+        </main>
       </div>
 
-      <main class="content">
-        <p class="section-label">Features</p>
-        <div id="featuresList" class="features-list">
-          <!-- Features will be dynamically inserted here -->
-        </div>
-      </main>
+      <!-- PAGE 2: FEED SETTINGS -->
+      <div id="page-feed" class="page right">
+        <header class="nav-bar">
+          <button class="nav-back-btn" data-back="page-home">
+            <span class="chevron-back">‹</span> Back
+          </button>
+          <span class="nav-title">Feed</span>
+          <span class="nav-placeholder"></span>
+        </header>
+        <main class="scroll-content">
+          <div class="ios-list-group">
+            <!-- Ads Toggle -->
+            <label class="ios-list-item">
+              <div class="ios-list-content">
+                <span class="ios-list-text">Block Ads</span>
+              </div>
+              <div class="switch">
+                <input type="checkbox" id="toggle-blockAds" />
+                <span class="slider round"></span>
+              </div>
+            </label>
+            <!-- Recommendations Toggle -->
+            <label class="ios-list-item">
+              <div class="ios-list-content">
+                <span class="ios-list-text">Block Suggestions</span>
+              </div>
+              <div class="switch">
+                <input type="checkbox" id="toggle-blockRecommendations" />
+                <span class="slider round"></span>
+              </div>
+            </label>
+          </div>
+          <div class="ios-list-footer">
+            Manage what content appears in your Instagram feed.
+          </div>
+        </main>
+      </div>
 
-      <footer class="footer">
-        <a href="#" id="refreshLink" class="refresh-link">Refresh to apply changes</a>
-      </footer>
+      <!-- PAGE 3: DEVELOPER UTILS -->
+      <div id="page-dev" class="page right">
+        <header class="nav-bar">
+          <button class="nav-back-btn" data-back="page-home">
+            <span class="chevron-back">‹</span> Back
+          </button>
+          <span class="nav-title">Utilities</span>
+          <span class="nav-placeholder"></span>
+        </header>
+        <main class="scroll-content">
+          <div class="ios-list-group">
+             <!-- Debug Toggle -->
+             <label class="ios-list-item">
+              <div class="ios-list-content">
+                <span class="ios-list-text">Debug Logs</span>
+              </div>
+              <div class="switch">
+                <input type="checkbox" id="toggle-debugMode" />
+                <span class="slider round"></span>
+              </div>
+            </label>
+          </div>
+          <div class="ios-list-footer">
+            Enable detailed logging for troubleshooting.
+          </div>
+        </main>
+      </div>
+
     </div>
-
     <script type="module" src="popup.ts"></script>
   </body>
 </html>

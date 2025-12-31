@@ -1,176 +1,204 @@
 /**
  * Instagram Ad & Recommendation Blocker
- * Popup Script
+ * Popup Script (iOS Style Redesign)
  */
 
 import type { Settings, StatusResponse } from '@/types';
 
-interface FeatureDef {
-  id: keyof Settings;
-  label: string;
-  description: string;
-}
+// Feature IDs matching the HTML toggle IDs (toggle-ID)
+const TOGGLE_IDS: (keyof Settings)[] = ['blockAds', 'blockRecommendations', 'debugMode'];
 
-// Configuration: easy to add new features here
-// 'enabled' is handled separately as the master switch
-const FEATURES: FeatureDef[] = [
-  {
-    id: 'blockAds',
-    label: 'Block Ads',
-    description: 'Hide sponsored posts in feed',
-  },
-  {
-    id: 'blockRecommendations',
-    label: 'Block Recommendations',
-    description: 'Hide suggested posts and reels',
-  },
-  {
-    id: 'debugMode',
-    label: 'Debug Mode',
-    description: 'Show detailed logs in console',
-  },
-];
-
-async function init(): Promise<void> {
-  const enableToggle = document.getElementById('enableToggle') as HTMLInputElement;
-  const featuresList = document.getElementById('featuresList') as HTMLDivElement;
-  const refreshLink = document.getElementById('refreshLink') as HTMLAnchorElement;
-  const statsSection = document.getElementById('statsSection') as HTMLDivElement;
-  const blockedCountEl = document.getElementById('blockedCount') as HTMLSpanElement;
-
-  // Load current settings
-  const settings = (await chrome.storage.sync.get({
+class PopupManager {
+  private settings: Settings = {
     enabled: true,
     blockAds: true,
     blockRecommendations: true,
-    debugMode: false,
-  })) as Settings;
+    debugMode: false
+  };
 
-  // Fetch blocked count from content script
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.url?.includes('instagram.com') && tab.id) {
-      const response = (await chrome.tabs.sendMessage(tab.id, {
-        type: 'GET_STATUS',
-      })) as StatusResponse;
+  private historyStack: string[] = ['page-home'];
 
-      const total = response.blockedCount.ads + response.blockedCount.recommendations;
-      if (total > 0) {
-        blockedCountEl.textContent = total.toString();
-        statsSection.style.display = 'block';
-      }
-    }
-  } catch {
-    // Content script not available
+  constructor() {
+    this.init();
   }
 
-  // Initialize Master Toggle
-  enableToggle.checked = settings.enabled;
-  updateDisabledState(settings.enabled);
+  async init() {
+    await this.loadSettings();
+    this.initNavigation();
+    this.render();
+    this.updateStats(); // Initial check
+  }
 
-  enableToggle.addEventListener('change', async () => {
-    const enabled = enableToggle.checked;
-    await updateSettings({ enabled });
-    updateDisabledState(enabled);
-  });
+  /* --------------------------
+     Settings & State
+     -------------------------- */
+  async loadSettings() {
+    this.settings = (await chrome.storage.sync.get({
+      enabled: true,
+      blockAds: true,
+      blockRecommendations: true,
+      debugMode: false,
+    })) as Settings;
+  }
 
-  // Render Features dynamically
-  FEATURES.forEach((feature) => {
-    const item = document.createElement('label');
-    item.className = 'feature-item';
+  async updateSetting(key: string, value: boolean) {
+    if (key === 'enabled') {
+      this.settings.enabled = value;
+    } else if (TOGGLE_IDS.includes(key as keyof Settings)) {
+      (this.settings as any)[key] = value;
+    }
 
-    // Checkbox input (hidden but functional)
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'feature-checkbox';
-    checkbox.style.display = 'none'; // Controlled by the switch UI
-    checkbox.checked = !!settings[feature.id];
+    await chrome.storage.sync.set(this.settings);
+    await this.notifyContentScript();
+    this.render(); // Update UI state if needed
+  }
 
-    // UI Structure
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'feature-info';
-
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'feature-label';
-    labelSpan.textContent = feature.label;
-
-    const descSpan = document.createElement('span');
-    descSpan.className = 'feature-desc';
-    descSpan.textContent = feature.description;
-
-    infoDiv.appendChild(labelSpan);
-    infoDiv.appendChild(descSpan);
-
-    // Switch UI
-    const switchDiv = document.createElement('div');
-    switchDiv.className = 'switch';
-    const slider = document.createElement('span');
-    slider.className = 'slider round';
-    // We need a visual checkbox for the switch CSS to work or reuse the structure
-    // Since we are generating the structure:
-    /*
-        <label class="feature-item">
-            <div class="feature-info">...</div>
-            <div class="switch">
-                <input type="checkbox">
-                <span class="slider round"></span>
-            </div>
-        </label>
-     */
-    // Let's restructure properly
-    // The event listener should be on the input
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = !!settings[feature.id];
-    input.addEventListener('change', async () => {
-      await updateSettings({ [feature.id]: input.checked });
-    });
-
-    switchDiv.appendChild(input);
-    switchDiv.appendChild(slider);
-
-    item.appendChild(infoDiv);
-    item.appendChild(switchDiv);
-
-    featuresList.appendChild(item);
-  });
-
-  // Refresh link
-  refreshLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    chrome.tabs.reload();
-  });
-}
-
-async function updateSettings(settings: Partial<Settings>): Promise<void> {
-  await chrome.storage.sync.set(settings);
-
-  try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (tab?.url?.includes('instagram.com') && tab.id) {
-      await chrome.tabs.sendMessage(tab.id, {
-        type: 'UPDATE_SETTINGS',
-        ...settings,
-      });
-      // Also send toggle enabled if that's what changed, content script handles both usually via UPDATE_SETTINGS or TOGGLE_ENABLED
-      // The original code had TOGGLE_ENABLED separate, checking if we need to maintain that compatibility
-      if (settings.enabled !== undefined) {
+  async notifyContentScript() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.url?.includes('instagram.com') && tab.id) {
         await chrome.tabs.sendMessage(tab.id, {
-          type: 'TOGGLE_ENABLED',
-          enabled: settings.enabled,
+          type: 'UPDATE_SETTINGS',
+          ...this.settings,
         });
+
+        // Maintain compatibility with existing messages if needed
+        if (this.settings.enabled !== undefined) {
+          await chrome.tabs.sendMessage(tab.id, {
+            type: 'TOGGLE_ENABLED',
+            enabled: this.settings.enabled,
+          });
+        }
       }
+    } catch {
+      // Content script might not be loaded or active
     }
-  } catch {
-    // console.log('Could not update content script settings');
+  }
+
+  /* --------------------------
+     Navigation (iOS Style)
+     -------------------------- */
+  initNavigation() {
+    // Navigate forward buttons
+    const navButtons = [
+      { btnId: 'btn-feed-settings', pageId: 'page-feed' },
+      { btnId: 'btn-dev-utils', pageId: 'page-dev' }
+    ];
+
+    navButtons.forEach(({ btnId, pageId }) => {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.addEventListener('click', () => this.pushView(pageId));
+      }
+    });
+
+    // Back buttons
+    document.querySelectorAll('.nav-back-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.popView();
+      });
+    });
+
+    // Contact button
+    const contactBtn = document.getElementById('btn-contact');
+    if (contactBtn) {
+      contactBtn.addEventListener('click', () => {
+        window.open('mailto:gobeumsu@gmail.com');
+      });
+    }
+  }
+
+  pushView(pageId: string) {
+    const nextPage = document.getElementById(pageId);
+    
+    // Add logic to animate
+    if (nextPage) {
+      nextPage.classList.add('active');
+      this.historyStack.push(pageId);
+    }
+  }
+
+  popView() {
+    if (this.historyStack.length <= 1) return; // Can't pop home
+
+    const currentPageId = this.historyStack.pop();
+    const currentPage = document.getElementById(currentPageId!);
+    
+    if (currentPage) {
+        currentPage.classList.remove('active');
+    }
+  }
+
+  /* --------------------------
+     UI Rendering
+     -------------------------- */
+  render() {
+    // 1. Master Toggle
+    const masterToggle = document.getElementById('masterToggle') as HTMLInputElement;
+    const masterStatusText = document.getElementById('masterStatusText');
+    if (masterToggle) {
+        // Prevent infinite loops by checking status
+        if (masterToggle.checked !== this.settings.enabled) {
+            masterToggle.checked = this.settings.enabled;
+        }
+        
+        // Listeners usually added once, but safe here if we ensure idempotency or just add in init.
+        // Better to add listener in init and just update DOM here.
+        masterStatusText!.textContent = this.settings.enabled ? 'Active' : 'Inactive';
+        document.body.style.opacity = this.settings.enabled ? '1' : '0.8';
+    }
+
+    // 2. Feature Toggles
+    TOGGLE_IDS.forEach((id) => {
+        const toggle = document.getElementById(`toggle-${id}`) as HTMLInputElement;
+        if (toggle) {
+            toggle.disabled = !this.settings.enabled;
+            if (toggle.checked !== !!this.settings[id]) {
+                toggle.checked = !!this.settings[id];
+            }
+        }
+    });
+  }
+
+  async updateStats() {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.url?.includes('instagram.com') && tab.id) {
+          const response = (await chrome.tabs.sendMessage(tab.id, {
+            type: 'GET_STATUS',
+          })) as StatusResponse;
+    
+          const total = response.blockedCount.ads + response.blockedCount.recommendations;
+          const blockedCountEl = document.getElementById('blockedCount');
+          const statsCard = document.getElementById('statsCard');
+
+          if (total > 0 && blockedCountEl && statsCard) {
+            blockedCountEl.textContent = total.toString();
+            statsCard.classList.remove('stats-hidden');
+          }
+        }
+      } catch {
+        // Content script might not be ready
+      }
   }
 }
 
-function updateDisabledState(enabled: boolean): void {
-  document.body.classList.toggle('disabled', !enabled);
-}
+// Global initialization
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new PopupManager();
 
-document.addEventListener('DOMContentLoaded', init);
+    // Attach listeners once here to avoid re-binding in render
+    const masterToggle = document.getElementById('masterToggle') as HTMLInputElement;
+    masterToggle.addEventListener('change', (e) => {
+        app.updateSetting('enabled', (e.target as HTMLInputElement).checked);
+    });
+
+    TOGGLE_IDS.forEach(id => {
+        const toggle = document.getElementById(`toggle-${id}`) as HTMLInputElement;
+        if (toggle) {
+            toggle.addEventListener('change', (e) => {
+                app.updateSetting(id, (e.target as HTMLInputElement).checked);
+            });
+        }
+    });
+});

@@ -1,53 +1,288 @@
 :root {
-  --primary-color: #1a73e8;
-  --text-color: #202124;
-  --secondary-text-color: #5f6368;
-  --background-color: #ffffff;
-  --border-color: #dadce0;
-  --switch-bg-off: #bdc1c6;
-  --switch-bg-on: #1a73e8; /* Google Blue */
-  --switch-handle: #ffffff;
-  --hover-color: #f1f3f4;
-  --font-family: 'Roboto', sans-serif;
+  /* Apple iOS System Colors */
+  --bg-color: #F2F2F7;         /* System Gray 6 - Main Background */
+  --card-bg: #FFFFFF;          /* White - Grouped List Items */
+  --text-primary: #000000;
+  --text-secondary: #8E8E93;   /* System Gray */
+  --tint-color: #007AFF;       /* System Blue */
+  --separator: #C6C6C8;        /* System Gray 3 */
+  --destructive: #FF3B30;      /* System Red */
+  --switch-green: #34C759;     /* System Green */
+  
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius-group: 10px;        /* Corner radius for inset groups */
+  --nav-height: 44px;
 }
 
 body {
   margin: 0;
+  width: 340px; /* Compact width */
+  height: 450px; /* Reduced height */
+  background-color: var(--bg-color);
   font-family: var(--font-family);
-  background-color: var(--background-color);
-  color: var(--text-color);
-  width: 320px;
+  color: var(--text-primary);
+  overflow: hidden; /* Prevent body scroll, handle inside pages */
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px; /* Slightly smaller base font */
+}
+
+/* Viewport & Navigation Logic */
+.app-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
-.app-container {
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-color);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1); /* iOS navigation curve */
   display: flex;
   flex-direction: column;
-  height: 100%;
+  z-index: 1;
 }
 
-/* Header */
-.header {
+/* Page states */
+.page.active {
+  transform: translate3d(0, 0, 0);
+  z-index: 2;
+}
+
+.page.right {
+  transform: translate3d(100%, 0, 0);
+  box-shadow: -10px 0 25px rgba(0,0,0,0.1); /* Shadow for depth */
+  visibility: hidden; /* Hide when offscreen to avoid tabbing */
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0.35s;
+}
+
+.page.right.active {
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.page.left {
+  transform: translate3d(-30%, 0, 0); /* Parallax effect */
+  filter: brightness(0.95); /* Slight dimming of background page */
+  z-index: 1;
+}
+
+/* Scroll Content Area */
+.scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 16px 20px 16px; /* 16px lateral padding for inset groups */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ------------------
+   Header / Nav Bar 
+   ------------------ */
+.header-hero {
+  padding: 24px 16px 12px 16px; /* Reduced top padding */
+  background-color: var(--bg-color);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border-color);
+  flex-direction: column;
 }
 
 .app-title {
-  font-size: 18px;
-  font-weight: 500; /* Medium */
+  font-size: 24px; /* Title 2 / Headline Size */
+  font-weight: 700;
   margin: 0;
-  color: var(--text-color);
+  letter-spacing: 0.35px;
+  line-height: 28px;
 }
 
-/* Switches */
+.master-switch-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+#masterStatusText {
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.nav-bar {
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  background: rgba(242, 242, 247, 0.85); /* Proper glass blur */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.15); /* Hairline */
+  z-index: 10;
+  position: sticky;
+  top: 0;
+}
+
+.nav-title {
+  font-size: 17px;
+  font-weight: 600;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nav-back-btn {
+  background: none;
+  border: none;
+  color: var(--tint-color);
+  font-size: 17px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 8px 4px;
+}
+
+.nav-back-btn:active {
+    opacity: 0.5;
+}
+
+.chevron-back {
+  font-size: 24px;
+  margin-right: 3px;
+  margin-top: -3px;
+  font-weight: 300;
+  font-family: -apple-system, sans-serif;
+}
+
+.nav-placeholder {
+  width: 60px; /* Balance back button space */
+}
+
+/* ------------------
+   iOS Inset Grouped Lists 
+   ------------------ */
+.ios-list-group {
+  margin-top: 20px;
+  margin-bottom: 24px;
+  background: var(--card-bg);
+  border-radius: var(--radius-group);
+  overflow: hidden; /* for rounding corners */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.ios-list-header {
+  margin: 0 0 6px 16px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: -0.08px;
+}
+
+/* Wrap list group with header outside effectively requires structure change or negative margins.
+   For simplicity, we put headers OUTSIDE .ios-list-group in HTML or just handle standard list.
+   Let's assume headers are BEFORE the group div in HTML or use this:
+*/
+
+.ios-list-group + .ios-list-header {
+  margin-top: -16px; /* Adjustment if placed weirdly */
+}
+
+.ios-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 16px; /* ~44px min-height */
+  min-height: 44px;
+  box-sizing: border-box;
+  background: var(--card-bg);
+  position: relative;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Separator Line (except last item) */
+.ios-list-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 60px; /* Aligned with text start */
+  right: 0;
+  height: 0.5px; /* Retina hairline */
+  background-color: var(--separator);
+}
+
+/* If no icon, indent less */
+.ios-list-item.is-link:not(:last-child)::after {
+   left: 52px; /* Adjust based on icon size */
+}
+
+.ios-list-item:active {
+  background-color: #E5E5EA;
+}
+
+.ios-list-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.ios-icon-container {
+  width: 29px;
+  height: 29px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.ios-list-text {
+  font-size: 17px;
+  line-height: 22px;
+  color: var(--text-primary);
+  letter-spacing: -0.41px;
+}
+
+.ios-chevron {
+  color: #C7C7CC;
+  font-size: 17px;
+  font-weight: 600;
+  margin-left: 8px;
+  font-family: "SF Pro Text", sans-serif;
+  opacity: 0.5;
+}
+
+/* Footer notes */
+.ios-list-footer, .ios-footer-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 0 16px;
+  line-height: 1.4;
+}
+
+.ios-footer-note {
+  text-align: center;
+  margin-top: 24px;
+  padding-bottom: 20px;
+}
+
+/* ------------------
+   Switches (Apple Style)
+   ------------------ */
 .switch {
   position: relative;
   display: inline-block;
-  width: 36px;
-  height: 20px;
+  width: 51px;
+  height: 31px;
+  flex-shrink: 0;
 }
 
 .switch input {
@@ -63,128 +298,55 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--switch-bg-off);
-  transition: 0.4s;
-  border-radius: 20px; /* Round */
+  background-color: #E9E9EA;
+  transition: .3s;
+  border-radius: 31px;
 }
 
 .slider:before {
   position: absolute;
-  content: '';
-  height: 16px;
-  width: 16px;
+  content: "";
+  height: 27px;
+  width: 27px;
   left: 2px;
   bottom: 2px;
-  background-color: var(--switch-handle);
-  transition: 0.4s;
+  background-color: white;
+  transition: .3s cubic-bezier(0.3, 0.8, 0.5, 1);
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15), 0 3px 1px rgba(0,0,0,0.06);
 }
 
 input:checked + .slider {
-  background-color: var(--switch-bg-on);
-  opacity: 1;
+  background-color: var(--switch-green);
 }
 
 input:checked + .slider:before {
-  transform: translateX(16px);
+  transform: translateX(20px);
 }
 
-/* Stats Section */
-.stats-section {
-  padding: 12px 24px;
-  background-color: #e8f0fe;
-  border-bottom: 1px solid var(--border-color);
+/* Stats Card Special */
+.stats-hidden {
+    display: none;
 }
 
-.stats-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.ios-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-group);
+    padding: 16px;
+    margin-top: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .stats-label {
-  font-size: 14px;
-  color: var(--text-color);
+    font-size: 15px;
+    font-weight: 500;
 }
 
 .stats-value {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--primary-color);
-}
-
-/* Content */
-.content {
-  padding: 8px 0;
-}
-
-.section-label {
-  padding: 16px 24px 8px;
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--secondary-text-color);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.features-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.feature-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.feature-item:hover {
-  background-color: var(--hover-color);
-}
-
-.feature-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.feature-label {
-  font-size: 16px;
-  color: var(--text-color);
-}
-
-.feature-desc {
-  font-size: 12px;
-  color: var(--secondary-text-color);
-  margin-top: 2px;
-}
-
-/* Footer */
-.footer {
-  padding: 12px 24px;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-  background-color: #f8f9fa; /* Slight off-white for footer */
-}
-
-.refresh-link {
-  font-size: 12px;
-  color: var(--primary-color);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.refresh-link:hover {
-  text-decoration: underline;
-}
-
-/* Disabled State */
-body.disabled .content,
-body.disabled .footer {
-  opacity: 0.5;
-  pointer-events: none;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
