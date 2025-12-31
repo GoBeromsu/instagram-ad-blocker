@@ -40,9 +40,56 @@ class InstagramBlocker {
   private async init(): Promise<void> {
     await this.loadSettings();
     this.setupMessageListener();
+    this.setupNavigationListener();
     this.findFeedAndObserve();
 
     logger.info('Initialized');
+  }
+
+  /**
+   * Listen for navigation events (back/forward button, SPA navigation)
+   * Instagram is a SPA, so we need to re-scan when URL changes
+   */
+  private setupNavigationListener(): void {
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', () => {
+      logger.log('Navigation detected (popstate), re-scanning feed...');
+      this.handleNavigation();
+    });
+
+    // Intercept History API for SPA navigation
+    const originalPushState = history.pushState.bind(history);
+    const originalReplaceState = history.replaceState.bind(history);
+
+    history.pushState = (...args) => {
+      originalPushState(...args);
+      logger.log('Navigation detected (pushState), re-scanning feed...');
+      this.handleNavigation();
+    };
+
+    history.replaceState = (...args) => {
+      originalReplaceState(...args);
+      logger.log('Navigation detected (replaceState), re-scanning feed...');
+      this.handleNavigation();
+    };
+  }
+
+  /**
+   * Handle navigation by re-finding feed and re-scanning
+   */
+  private handleNavigation(): void {
+    // Clear processed posts since DOM may have been replaced
+    this.processedPosts = new WeakSet<Element>();
+
+    // Wait for DOM to settle after navigation
+    setTimeout(() => {
+      // Re-find feed container (may have changed)
+      this.feedContainer = null;
+      this.feedObserver?.disconnect();
+      this.feedObserver = null;
+
+      this.findFeedAndObserve();
+    }, 500);
   }
 
   private async loadSettings(): Promise<void> {
