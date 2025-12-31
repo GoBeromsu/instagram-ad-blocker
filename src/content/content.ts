@@ -17,6 +17,7 @@ import type {
   StatusResponse,
   SuccessResponse,
 } from '@/types';
+import { AdDetector, SuggestionDetector } from './detectors';
 
 class InstagramBlocker {
   private enabled = true;
@@ -27,28 +28,9 @@ class InstagramBlocker {
   private feedObserver: MutationObserver | null = null;
   private feedContainer: Element | null = null;
 
-  // Keywords to detect sponsored content (multi-language)
-  private readonly sponsoredKeywords: readonly string[] = [
-    'Sponsored',
-    '광고', // Korean
-    'Publicidad', // Spanish
-    'Gesponsert', // German
-    'Sponsorisé', // French
-    'Patrocinado', // Portuguese
-    '広告', // Japanese
-    '贊助', // Chinese Traditional
-    '赞助', // Chinese Simplified
-  ];
-
-  // Keywords to detect recommended content
-  private readonly recommendedKeywords: readonly string[] = [
-    'Suggested for you',
-    'Recommended for you',
-    '회원님을 위한 추천', // Korean (suggested for you)
-    'Sugerido para ti',
-    'Empfohlen für dich',
-    'Suggéré pour vous',
-  ];
+  // Detector instances
+  private readonly adDetector = new AdDetector();
+  private readonly suggestionDetector = new SuggestionDetector();
 
   constructor() {
     this.init();
@@ -225,70 +207,23 @@ class InstagramBlocker {
   }
 
   /**
-   * Process a single article
+   * Process a single article using detectors
    */
   private processArticle(article: Element): void {
     if (this.processedPosts.has(article)) return;
     this.processedPosts.add(article);
 
-    // Check for sponsored content
-    if (this.blockAds && this.isSponsored(article)) {
-      this.hideArticle(article, 'ad');
+    // Check for sponsored content using AdDetector
+    if (this.blockAds && this.adDetector.detect(article)) {
+      this.hideArticle(article, this.adDetector.type);
       return;
     }
 
-    // Check for recommended content
-    if (this.blockRecommendations && this.isRecommended(article)) {
-      this.hideArticle(article, 'recommendation');
+    // Check for recommended content using SuggestionDetector
+    // (Follow button primary, text fallback)
+    if (this.blockRecommendations && this.suggestionDetector.detect(article)) {
+      this.hideArticle(article, this.suggestionDetector.type);
     }
-  }
-
-  /**
-   * Check if article is a sponsored post
-   * Only searches in the header area (first child) where "Sponsored" label appears
-   */
-  private isSponsored(article: Element): boolean {
-    // The header area is typically the first child of the article
-    const header = article.firstElementChild;
-    if (!header) return false;
-
-    // Find leaf text nodes that contain sponsored keywords
-    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
-
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const text = node.textContent?.trim();
-      if (text && this.sponsoredKeywords.includes(text)) {
-        console.log('[Instagram Blocker] Sponsored:', text);
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Check if article is a recommended post
-   * Only searches in the header area (first child) where "Suggested for you" label appears
-   */
-  private isRecommended(article: Element): boolean {
-    // The header area is typically the first child of the article
-    const header = article.firstElementChild;
-    if (!header) return false;
-
-    // Find leaf text nodes that contain recommendation keywords
-    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
-
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const text = node.textContent?.trim();
-      if (text && this.recommendedKeywords.includes(text)) {
-        console.log('[Instagram Blocker] Recommended:', text);
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /**

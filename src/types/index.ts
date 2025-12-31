@@ -74,3 +74,20 @@ export interface StatusResponse {
 export interface SuccessResponse {
   success: boolean;
 }
+
+/**
+ * Detector interface - Contract for ad/recommendation detectors
+ */
+export interface Detector {
+  /**
+   * Detect if article matches this detector's criteria
+   * @param article - The article element to check
+   * @returns true if detected
+   */
+  detect(article: Element): boolean;
+
+  /**
+   * The type of content this detector identifies
+   */
+  readonly type: BlockedType;
+}
