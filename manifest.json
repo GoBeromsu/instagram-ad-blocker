@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Instagram Ad & Recommendation Blocker",
+  "name": "InstaFocus: Ad Blocker & Focus Mode for Instagram™",
   "version": "1.0.0",
-  "description": "Block sponsored ads and recommended posts from Instagram feed",
+  "description": "Block ads, reels, and suggested posts. Experience a clean, distraction-free Instagram feed with InstaFocus.",
   "permissions": [
     "storage",
     "activeTab"
