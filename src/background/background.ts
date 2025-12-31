@@ -27,7 +27,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: Message,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response: BlockedCount) => void
+    sendResponse: (response: BlockedCount) => void,
   ) => {
     switch (message.type) {
       case 'POST_BLOCKED':
@@ -40,13 +40,10 @@ chrome.runtime.onMessage.addListener(
     }
 
     return true;
-  }
+  },
 );
 
-function handlePostBlocked(
-  count: BlockedCount,
-  sender: chrome.runtime.MessageSender
-): void {
+function handlePostBlocked(count: BlockedCount, sender: chrome.runtime.MessageSender): void {
   globalBlockedCount = count;
 
   // Update badge to show blocked count

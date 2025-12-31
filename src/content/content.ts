@@ -3,13 +3,7 @@
  * Content Script - Detects and hides sponsored/recommended posts
  */
 
-import type {
-  BlockedCount,
-  BlockedType,
-  Message,
-  StatusResponse,
-  SuccessResponse,
-} from '@/types';
+import type { BlockedCount, BlockedType, Message, StatusResponse, SuccessResponse } from '@/types';
 
 class InstagramBlocker {
   private enabled = true;
@@ -76,17 +70,17 @@ class InstagramBlocker {
       (
         message: Message,
         _sender: chrome.runtime.MessageSender,
-        sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void
+        sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void,
       ) => {
         this.handleMessage(message, sendResponse);
         return true; // Keep channel open for async response
-      }
+      },
     );
   }
 
   private handleMessage(
     message: Message,
-    sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void
+    sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void,
   ): void {
     switch (message.type) {
       case 'GET_STATUS':
@@ -187,7 +181,7 @@ class InstagramBlocker {
       const ariaLabel = element.getAttribute('aria-label') || '';
       if (
         this.sponsoredKeywords.some((keyword) =>
-          ariaLabel.toLowerCase().includes(keyword.toLowerCase())
+          ariaLabel.toLowerCase().includes(keyword.toLowerCase()),
         )
       ) {
         return true;
