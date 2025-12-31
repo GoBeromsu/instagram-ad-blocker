@@ -5,6 +5,20 @@ All notable changes to Instagram Ad & Recommendation Blocker will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-01-01
+
+### Fixed
+
+- **Back Navigation Bug**: Hidden posts no longer reappear after browser back button (#4)
+  - Added popstate event listener for browser navigation
+  - Intercept History API for SPA navigation detection
+  - Re-scan feed automatically after navigation
+
+### Added
+
+- **Pre-commit Hook**: Automatic TypeScript check before commits
+  - Prevents committing code with type errors
+
 ## [1.1.0] - 2025-01-01
 
 ### Changed
