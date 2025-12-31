@@ -171,13 +171,18 @@ class InstagramBlocker {
   }
 
   private isSponsored(article: Element, _textContent: string): boolean {
-    // Method 1: Check for "Sponsored" text in specific locations
-    const sponsoredElements = article.querySelectorAll('span, a');
+    // Method 1: Check for "Sponsored" text in span, div, a elements
+    // Instagram uses div elements for "Sponsored" label (seen in DOM analysis)
+    const sponsoredElements = article.querySelectorAll('span, div, a');
 
     for (const element of sponsoredElements) {
-      const text = element.textContent?.trim();
-      if (text && this.sponsoredKeywords.includes(text)) {
-        return true;
+      // Only check leaf nodes or elements with minimal children
+      if (element.children.length <= 1) {
+        const text = element.textContent?.trim();
+        if (text && this.sponsoredKeywords.includes(text)) {
+          console.log('[Instagram Blocker] Found sponsored text:', text);
+          return true;
+        }
       }
     }
 
@@ -194,64 +199,41 @@ class InstagramBlocker {
       }
     }
 
-    // Method 3: Look for specific data attributes or class patterns
-    const allSpans = article.querySelectorAll('span');
-    for (const span of allSpans) {
-      if (span.children.length === 0) {
-        const trimmedText = span.textContent?.trim();
-        if (trimmedText && this.sponsoredKeywords.includes(trimmedText)) {
-          return true;
-        }
-      }
-    }
-
     return false;
   }
 
   private isRecommended(article: Element): boolean {
-    // Check parent containers for "Suggested for you" sections
-    let parent = article.parentElement;
-    let depth = 0;
-    const maxDepth = 5;
+    // Method 1: Check for "Suggested for you" text directly in the article
+    // Instagram puts this label in a div near the username (seen in DOM analysis)
+    const textElements = article.querySelectorAll('span, div');
 
-    while (parent && depth < maxDepth) {
-      for (const keyword of this.recommendedKeywords) {
-        const siblingText = this.getSiblingText(article, parent);
-        if (siblingText.includes(keyword)) {
+    for (const element of textElements) {
+      if (element.children.length <= 1) {
+        const text = element.textContent?.trim();
+        if (text && this.recommendedKeywords.includes(text)) {
+          console.log('[Instagram Blocker] Found recommended text:', text);
           return true;
         }
       }
-
-      parent = parent.parentElement;
-      depth++;
     }
 
-    // Also check within the article for recommendation indicators
-    const headerArea = article.querySelector('header');
-    if (headerArea) {
-      const headerText = headerArea.textContent || '';
-      for (const keyword of this.recommendedKeywords) {
-        if (headerText.includes(keyword)) {
-          return true;
+    // Method 2: Check for "Follow" button combined with header indicators
+    // Recommended posts have a Follow button in the header area
+    const followButton = article.querySelector('button');
+    if (followButton?.textContent?.trim() === 'Follow') {
+      // Check if there's a recommendation indicator nearby
+      const headerArea = article.querySelector('header') || article.firstElementChild;
+      if (headerArea) {
+        const headerText = headerArea.textContent || '';
+        for (const keyword of this.recommendedKeywords) {
+          if (headerText.includes(keyword)) {
+            return true;
+          }
         }
       }
     }
 
     return false;
-  }
-
-  private getSiblingText(article: Element, container: Element): string {
-    let text = '';
-    const children = container.children;
-
-    for (const child of children) {
-      if (child === article || child.contains(article)) {
-        break;
-      }
-      text += child.textContent || '';
-    }
-
-    return text;
   }
 
   private hidePost(article: Element, type: BlockedType): void {
