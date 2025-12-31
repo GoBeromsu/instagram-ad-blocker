@@ -12,6 +12,7 @@ export interface Settings {
   enabled: boolean;
   blockAds: boolean;
   blockRecommendations: boolean;
+  debugMode: boolean;
 }
 
 export type BlockedType = 'ad' | 'recommendation';
@@ -42,6 +43,7 @@ export interface UpdateSettingsMessage extends BaseMessage {
   type: 'UPDATE_SETTINGS';
   blockAds?: boolean;
   blockRecommendations?: boolean;
+  debugMode?: boolean;
 }
 
 export interface GetBlockedCountMessage extends BaseMessage {

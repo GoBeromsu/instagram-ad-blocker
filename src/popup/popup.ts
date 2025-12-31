@@ -24,6 +24,11 @@ const FEATURES: FeatureDef[] = [
     label: 'Block Recommendations',
     description: 'Hide suggested posts and reels',
   },
+  {
+    id: 'debugMode',
+    label: 'Debug Mode',
+    description: 'Show detailed logs in console',
+  },
 ];
 
 async function init(): Promise<void> {
@@ -36,6 +41,7 @@ async function init(): Promise<void> {
     enabled: true,
     blockAds: true,
     blockRecommendations: true,
+    debugMode: false,
   })) as Settings;
 
   // Initialize Master Toggle

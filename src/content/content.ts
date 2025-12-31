@@ -18,6 +18,7 @@ import type {
   SuccessResponse,
 } from '@/types';
 import { AdDetector, SuggestionDetector } from './detectors';
+import { logger } from '@/utils/logger';
 
 class InstagramBlocker {
   private enabled = true;
@@ -41,7 +42,7 @@ class InstagramBlocker {
     this.setupMessageListener();
     this.findFeedAndObserve();
 
-    console.log('[Instagram Blocker] Initialized');
+    logger.info('Initialized');
   }
 
   private async loadSettings(): Promise<void> {
@@ -50,12 +51,14 @@ class InstagramBlocker {
         enabled: true,
         blockAds: true,
         blockRecommendations: true,
+        debugMode: false,
       });
       this.enabled = result.enabled;
       this.blockAds = result.blockAds;
       this.blockRecommendations = result.blockRecommendations;
+      logger.setDebugMode(result.debugMode);
     } catch (error) {
-      console.error('[Instagram Blocker] Failed to load settings:', error);
+      logger.error('Failed to load settings:', error);
     }
   }
 
@@ -100,6 +103,12 @@ class InstagramBlocker {
           blockAds: this.blockAds,
           blockRecommendations: this.blockRecommendations,
         });
+
+        // Handle Debug Mode if passed
+        if (message.debugMode !== undefined) {
+          logger.setDebugMode(message.debugMode);
+        }
+
         this.scanFeed();
         sendResponse({ success: true });
         break;
@@ -131,17 +140,17 @@ class InstagramBlocker {
     this.feedContainer = findFeed();
 
     if (this.feedContainer) {
-      console.log('[Instagram Blocker] Feed found, starting observation');
+      logger.log('Feed found, starting observation');
       this.observeFeed();
       this.scanFeed();
     } else {
       // Wait for feed to load
-      console.log('[Instagram Blocker] Waiting for feed to load...');
+      logger.log('Waiting for feed to load...');
       const bodyObserver = new MutationObserver(() => {
         const feed = findFeed();
         if (feed) {
           this.feedContainer = feed;
-          console.log('[Instagram Blocker] Feed found, starting observation');
+          logger.log('Feed found, starting observation');
           bodyObserver.disconnect();
           this.observeFeed();
           this.scanFeed();
@@ -189,7 +198,12 @@ class InstagramBlocker {
       subtree: true,
     });
 
-    console.log('[Instagram Blocker] Feed observer active');
+    this.feedObserver.observe(this.feedContainer, {
+      childList: true,
+      subtree: true,
+    });
+
+    logger.log('Feed observer active');
   }
 
   /**
@@ -201,7 +215,7 @@ class InstagramBlocker {
     const container = this.feedContainer || document;
     const articles = container.querySelectorAll('article');
 
-    console.log(`[Instagram Blocker] Scanning ${articles.length} articles`);
+    logger.log(`Scanning ${articles.length} articles`);
 
     articles.forEach((article) => this.processArticle(article));
   }
@@ -237,22 +251,25 @@ class InstagramBlocker {
     el.dataset.blockedType = type;
 
     // Apply inline styles for collapsed placeholder
-    const label = type === 'ad' ? '🚫 광고 차단됨' : '🚫 추천 차단됨';
+    // Apply inline styles for collapsed placeholder
+    // Minimal Google-style placeholder
+    const label = type === 'ad' ? 'Ad hidden' : 'Post hidden';
 
     // Create placeholder element
     const placeholder = document.createElement('div');
     placeholder.className = 'ig-blocker-placeholder';
     placeholder.style.cssText = `
-      height: 50px !important;
-      background: linear-gradient(to right, #f5f5f5, #ebebeb) !important;
-      border-radius: 8px !important;
+      height: 32px !important;
+      background-color: #f1f3f4 !important;
+      border-radius: 4px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      color: #888 !important;
-      font-size: 13px !important;
+      color: #5f6368 !important;
+      font-size: 12px !important;
+      font-family: Roboto, Arial, sans-serif !important;
       margin: 8px 0 !important;
-      border: 1px solid #e0e0e0 !important;
+      cursor: default !important;
     `;
     placeholder.textContent = label;
 
@@ -283,7 +300,7 @@ class InstagramBlocker {
       })
       .catch(() => {});
 
-    console.log(`[Instagram Blocker] Blocked ${type}`);
+    logger.log(`Blocked ${type}`);
   }
 }
 
