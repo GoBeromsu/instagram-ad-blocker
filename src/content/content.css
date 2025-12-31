@@ -3,7 +3,38 @@
  * Content Styles
  */
 
-/* Hide blocked posts with smooth transition */
+/* Collapsed blocked post - shows small indicator */
+.ig-blocker-blocked {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  overflow: hidden !important;
+  opacity: 0.6 !important;
+  background: linear-gradient(to right, #f0f0f0, #e8e8e8) !important;
+  border-radius: 8px !important;
+  margin: 8px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+}
+
+/* Hide all children of blocked post */
+.ig-blocker-blocked > * {
+  display: none !important;
+}
+
+/* Show blocked indicator */
+.ig-blocker-blocked::before {
+  content: attr(data-blocked-label);
+  display: block !important;
+  color: #888;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Alternative: Complete hide (for future toggle option) */
 .ig-blocker-hidden {
   display: none !important;
   visibility: hidden !important;
@@ -13,38 +44,26 @@
   padding: 0 !important;
 }
 
-/* Alternative: Collapse with animation (optional) */
-.ig-blocker-collapsing {
-  opacity: 0;
-  transform: scaleY(0);
-  transform-origin: top;
-  transition: all 0.3s ease-out;
-  height: 0;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
-}
-
 /* Debug mode - show blocked posts with visual indicator */
-.ig-blocker-debug .ig-blocker-hidden {
-  display: block !important;
-  visibility: visible !important;
+.ig-blocker-debug .ig-blocker-blocked {
   height: auto !important;
-  opacity: 0.3;
-  position: relative;
+  max-height: none !important;
+  opacity: 0.3 !important;
+  background: transparent !important;
   border: 2px dashed #ff4444 !important;
 }
 
-.ig-blocker-debug .ig-blocker-hidden::before {
-  content: attr(data-blocked-type) ' blocked';
+.ig-blocker-debug .ig-blocker-blocked > * {
+  display: block !important;
+}
+
+.ig-blocker-debug .ig-blocker-blocked::before {
   position: absolute;
   top: 0;
   left: 0;
   background: #ff4444;
   color: white;
   padding: 4px 8px;
-  font-size: 12px;
-  font-weight: bold;
   z-index: 9999;
   text-transform: uppercase;
 }
