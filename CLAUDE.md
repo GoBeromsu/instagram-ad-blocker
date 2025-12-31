@@ -19,16 +19,40 @@ This extension uses DOM analysis to detect and hide:
 
 ```
 instragram_blocker/
+├── manifest.json              # Chrome Extension Manifest V3
+├── package.json               # Dependencies & npm scripts
+├── pnpm-lock.yaml             # Lock file
+├── tsconfig.json              # TypeScript configuration
+├── vite.config.ts             # Vite + CRXJS build configuration
+├── .gitignore
+├── .mcp.json                  # Playwright MCP (project scope)
+├── CLAUDE.md                  # Project documentation
+│
 ├── src/
-│   ├── content/          # Content scripts (DOM manipulation)
-│   ├── background/       # Service worker
-│   ├── popup/            # Extension popup UI
-│   └── utils/            # Shared utilities
-├── assets/icons/         # Extension icons
-├── manifest.json         # Extension manifest
-├── vite.config.ts        # Vite configuration
-├── tsconfig.json         # TypeScript configuration
-└── package.json          # Dependencies
+│   ├── types/
+│   │   └── index.ts           # Type definitions (Message, Settings, etc.)
+│   │
+│   ├── content/
+│   │   ├── content.ts         # Ad/recommendation detection & blocking logic
+│   │   └── content.css        # Styles for hiding blocked posts
+│   │
+│   ├── background/
+│   │   └── background.ts      # Service worker (badge updates, storage)
+│   │
+│   ├── popup/
+│   │   ├── popup.html         # Extension popup UI
+│   │   ├── popup.css          # Popup styles
+│   │   └── popup.ts           # Popup logic (toggle, settings)
+│   │
+│   └── utils/                 # Shared utilities (reserved)
+│
+├── assets/
+│   └── icons/
+│       ├── icon16.png         # Toolbar icon
+│       ├── icon48.png         # Extension management icon
+│       └── icon128.png        # Chrome Web Store icon
+│
+└── dist/                      # Build output (gitignored)
 ```
 
 ## Development

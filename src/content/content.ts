@@ -1,9 +1,22 @@
 /**
  * Instagram Ad & Recommendation Blocker
  * Content Script - Detects and hides sponsored/recommended posts
+ *
+ * Strategy:
+ * 1. Find the feed container (parent of articles)
+ * 2. Observe the feed for new posts being loaded
+ * 3. Filter and hide ads/recommendations before they're visible
  */
 
-import type { BlockedCount, BlockedType, Message, StatusResponse, SuccessResponse } from '@/types';
+import './content.css';
+
+import type {
+  BlockedCount,
+  BlockedType,
+  Message,
+  StatusResponse,
+  SuccessResponse,
+} from '@/types';
 
 class InstagramBlocker {
   private enabled = true;
@@ -11,7 +24,8 @@ class InstagramBlocker {
   private blockRecommendations = true;
   private blockedCount: BlockedCount = { ads: 0, recommendations: 0 };
   private processedPosts = new WeakSet<Element>();
-  private scanTimeout: ReturnType<typeof setTimeout> | null = null;
+  private feedObserver: MutationObserver | null = null;
+  private feedContainer: Element | null = null;
 
   // Keywords to detect sponsored content (multi-language)
   private readonly sponsoredKeywords: readonly string[] = [
@@ -30,7 +44,6 @@ class InstagramBlocker {
   private readonly recommendedKeywords: readonly string[] = [
     'Suggested for you',
     'Recommended for you',
-    '추천', // Korean (recommended)
     '회원님을 위한 추천', // Korean (suggested for you)
     'Sugerido para ti',
     'Empfohlen für dich',
@@ -43,9 +56,8 @@ class InstagramBlocker {
 
   private async init(): Promise<void> {
     await this.loadSettings();
-    this.scanAndBlock();
-    this.observeDOM();
     this.setupMessageListener();
+    this.findFeedAndObserve();
 
     console.log('[Instagram Blocker] Initialized');
   }
@@ -73,8 +85,8 @@ class InstagramBlocker {
         sendResponse: (response: StatusResponse | SuccessResponse | BlockedCount) => void,
       ) => {
         this.handleMessage(message, sendResponse);
-        return true; // Keep channel open for async response
-      },
+        return true;
+      }
     );
   }
 
@@ -94,7 +106,7 @@ class InstagramBlocker {
         this.enabled = message.enabled;
         chrome.storage.sync.set({ enabled: this.enabled });
         if (this.enabled) {
-          this.scanAndBlock();
+          this.scanFeed();
         }
         sendResponse({ success: true });
         break;
@@ -106,7 +118,7 @@ class InstagramBlocker {
           blockAds: this.blockAds,
           blockRecommendations: this.blockRecommendations,
         });
-        this.scanAndBlock();
+        this.scanFeed();
         sendResponse({ success: true });
         break;
 
@@ -116,197 +128,233 @@ class InstagramBlocker {
     }
   }
 
-  private observeDOM(): void {
-    const observer = new MutationObserver(() => {
+  /**
+   * Find the feed container and start observing
+   */
+  private findFeedAndObserve(): void {
+    const findFeed = (): Element | null => {
+      // Find main element
+      const main = document.querySelector('main');
+      if (!main) return null;
+
+      // Find the first article (post)
+      const article = main.querySelector('article');
+      if (!article) return null;
+
+      // The feed container is the parent of articles
+      return article.parentElement;
+    };
+
+    // Try to find feed immediately
+    this.feedContainer = findFeed();
+
+    if (this.feedContainer) {
+      console.log('[Instagram Blocker] Feed found, starting observation');
+      this.observeFeed();
+      this.scanFeed();
+    } else {
+      // Wait for feed to load
+      console.log('[Instagram Blocker] Waiting for feed to load...');
+      const bodyObserver = new MutationObserver(() => {
+        const feed = findFeed();
+        if (feed) {
+          this.feedContainer = feed;
+          console.log('[Instagram Blocker] Feed found, starting observation');
+          bodyObserver.disconnect();
+          this.observeFeed();
+          this.scanFeed();
+        }
+      });
+
+      bodyObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Cleanup after 30 seconds
+      setTimeout(() => bodyObserver.disconnect(), 30000);
+    }
+  }
+
+  /**
+   * Observe the feed container for new posts
+   */
+  private observeFeed(): void {
+    if (!this.feedContainer || this.feedObserver) return;
+
+    this.feedObserver = new MutationObserver((mutations) => {
       if (!this.enabled) return;
 
-      // Debounce to avoid excessive processing
-      if (this.scanTimeout) {
-        clearTimeout(this.scanTimeout);
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof Element) {
+            // Process if it's an article
+            if (node.tagName === 'ARTICLE') {
+              this.processArticle(node);
+            }
+            // Or check for articles inside
+            const articles = node.getElementsByTagName('article');
+            for (const article of articles) {
+              this.processArticle(article);
+            }
+          }
+        }
       }
-      this.scanTimeout = setTimeout(() => {
-        this.scanAndBlock();
-      }, 100);
     });
 
-    observer.observe(document.body, {
+    this.feedObserver.observe(this.feedContainer, {
       childList: true,
       subtree: true,
     });
+
+    console.log('[Instagram Blocker] Feed observer active');
   }
 
-  private scanAndBlock(): void {
+  /**
+   * Scan all existing articles in the feed
+   */
+  private scanFeed(): void {
     if (!this.enabled) return;
 
-    // Find all article elements (Instagram posts)
-    const articles = document.querySelectorAll('article');
+    const container = this.feedContainer || document;
+    const articles = container.querySelectorAll('article');
 
-    articles.forEach((article) => {
-      if (this.processedPosts.has(article)) return;
+    console.log(`[Instagram Blocker] Scanning ${articles.length} articles`);
 
-      this.processPost(article);
-      this.processedPosts.add(article);
-    });
+    articles.forEach((article) => this.processArticle(article));
   }
 
-  private processPost(article: Element): void {
-    const textContent = article.textContent || '';
+  /**
+   * Process a single article
+   */
+  private processArticle(article: Element): void {
+    if (this.processedPosts.has(article)) return;
+    this.processedPosts.add(article);
 
     // Check for sponsored content
-    if (this.blockAds && this.isSponsored(article, textContent)) {
-      this.hidePost(article, 'ad');
+    if (this.blockAds && this.isSponsored(article)) {
+      this.hideArticle(article, 'ad');
       return;
     }
 
     // Check for recommended content
     if (this.blockRecommendations && this.isRecommended(article)) {
-      this.hidePost(article, 'recommendation');
+      this.hideArticle(article, 'recommendation');
     }
   }
 
-  private isSponsored(article: Element, _textContent: string): boolean {
-    // Method 1: Check for "Sponsored" text in specific locations
-    const sponsoredElements = article.querySelectorAll('span, a');
+  /**
+   * Check if article is a sponsored post
+   * Only searches in the header area (first child) where "Sponsored" label appears
+   */
+  private isSponsored(article: Element): boolean {
+    // The header area is typically the first child of the article
+    const header = article.firstElementChild;
+    if (!header) return false;
 
-    for (const element of sponsoredElements) {
-      const text = element.textContent?.trim();
+    // Find leaf text nodes that contain sponsored keywords
+    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
+
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const text = node.textContent?.trim();
       if (text && this.sponsoredKeywords.includes(text)) {
+        console.log('[Instagram Blocker] Sponsored:', text);
         return true;
-      }
-    }
-
-    // Method 2: Check aria-labels for "Sponsored"
-    const elementsWithAria = article.querySelectorAll('[aria-label]');
-    for (const element of elementsWithAria) {
-      const ariaLabel = element.getAttribute('aria-label') || '';
-      if (
-        this.sponsoredKeywords.some((keyword) =>
-          ariaLabel.toLowerCase().includes(keyword.toLowerCase()),
-        )
-      ) {
-        return true;
-      }
-    }
-
-    // Method 3: Look for specific data attributes or class patterns
-    const allSpans = article.querySelectorAll('span');
-    for (const span of allSpans) {
-      if (span.children.length === 0) {
-        const trimmedText = span.textContent?.trim();
-        if (trimmedText && this.sponsoredKeywords.includes(trimmedText)) {
-          return true;
-        }
       }
     }
 
     return false;
   }
 
+  /**
+   * Check if article is a recommended post
+   * Only searches in the header area (first child) where "Suggested for you" label appears
+   */
   private isRecommended(article: Element): boolean {
-    // Check parent containers for "Suggested for you" sections
-    let parent = article.parentElement;
-    let depth = 0;
-    const maxDepth = 5;
+    // The header area is typically the first child of the article
+    const header = article.firstElementChild;
+    if (!header) return false;
 
-    while (parent && depth < maxDepth) {
-      for (const keyword of this.recommendedKeywords) {
-        const siblingText = this.getSiblingText(article, parent);
-        if (siblingText.includes(keyword)) {
-          return true;
-        }
-      }
+    // Find leaf text nodes that contain recommendation keywords
+    const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT, null);
 
-      parent = parent.parentElement;
-      depth++;
-    }
-
-    // Also check within the article for recommendation indicators
-    const headerArea = article.querySelector('header');
-    if (headerArea) {
-      const headerText = headerArea.textContent || '';
-      for (const keyword of this.recommendedKeywords) {
-        if (headerText.includes(keyword)) {
-          return true;
-        }
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const text = node.textContent?.trim();
+      if (text && this.recommendedKeywords.includes(text)) {
+        console.log('[Instagram Blocker] Recommended:', text);
+        return true;
       }
     }
 
     return false;
   }
 
-  private getSiblingText(article: Element, container: Element): string {
-    let text = '';
-    const children = container.children;
+  /**
+   * Hide the article element with a collapsed placeholder
+   */
+  private hideArticle(article: Element, type: BlockedType): void {
+    const el = article as HTMLElement;
 
-    for (const child of children) {
-      if (child === article || child.contains(article)) {
-        break;
-      }
-      text += child.textContent || '';
+    // Set data attributes
+    el.dataset.blockedBy = 'ig-blocker';
+    el.dataset.blockedType = type;
+
+    // Apply inline styles for collapsed placeholder
+    const label = type === 'ad' ? '🚫 광고 차단됨' : '🚫 추천 차단됨';
+
+    // Create placeholder element
+    const placeholder = document.createElement('div');
+    placeholder.className = 'ig-blocker-placeholder';
+    placeholder.style.cssText = `
+      height: 50px !important;
+      background: linear-gradient(to right, #f5f5f5, #ebebeb) !important;
+      border-radius: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #888 !important;
+      font-size: 13px !important;
+      margin: 8px 0 !important;
+      border: 1px solid #e0e0e0 !important;
+    `;
+    placeholder.textContent = label;
+
+    // Store original children
+    const children = Array.from(el.children);
+
+    // Hide all original children first
+    children.forEach((child) => {
+      (child as HTMLElement).style.display = 'none';
+    });
+
+    // Then insert placeholder at the beginning
+    el.insertBefore(placeholder, el.firstChild);
+
+    // Update count
+    if (type === 'ad') {
+      this.blockedCount.ads++;
+    } else {
+      this.blockedCount.recommendations++;
     }
 
-    return text;
-  }
+    // Notify background script
+    chrome.runtime
+      .sendMessage({
+        type: 'POST_BLOCKED',
+        blockedType: type,
+        count: this.blockedCount,
+      })
+      .catch(() => {});
 
-  private hidePost(article: Element, type: BlockedType): void {
-    const container = this.findPostContainer(article);
-
-    if (container) {
-      (container as HTMLElement).classList.add('ig-blocker-hidden');
-      (container as HTMLElement).dataset.blockedType = type;
-
-      // Update count
-      if (type === 'ad') {
-        this.blockedCount.ads++;
-      } else {
-        this.blockedCount.recommendations++;
-      }
-
-      // Notify background script
-      chrome.runtime
-        .sendMessage({
-          type: 'POST_BLOCKED',
-          blockedType: type,
-          count: this.blockedCount,
-        })
-        .catch(() => {
-          // Ignore errors when background script is not available
-        });
-
-      console.log(`[Instagram Blocker] Blocked ${type}:`, container);
-    }
-  }
-
-  private findPostContainer(article: Element): Element {
-    let current: Element = article;
-    let container: Element = article;
-
-    while (current.parentElement) {
-      const parent = current.parentElement;
-
-      if (['MAIN', 'SECTION'].includes(parent.tagName)) {
-        break;
-      }
-
-      const style = window.getComputedStyle(parent);
-      if (style.display === 'flex' || style.display === 'grid') {
-        if (parent.children.length <= 3) {
-          container = parent;
-        }
-      }
-
-      current = parent;
-    }
-
-    return container;
+    console.log(`[Instagram Blocker] Blocked ${type}`);
   }
 }
 
-// Initialize blocker when DOM is ready
+// Initialize when ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new InstagramBlocker();
-  });
+  document.addEventListener('DOMContentLoaded', () => new InstagramBlocker());
 } else {
   new InstagramBlocker();
 }
