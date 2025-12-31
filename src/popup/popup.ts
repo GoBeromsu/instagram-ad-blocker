@@ -3,16 +3,33 @@
  * Popup Script
  */
 
-import type { Settings, StatusResponse } from '@/types';
+import type { Settings } from '@/types';
+
+interface FeatureDef {
+  id: keyof Settings;
+  label: string;
+  description: string;
+}
+
+// Configuration: easy to add new features here
+// 'enabled' is handled separately as the master switch
+const FEATURES: FeatureDef[] = [
+  {
+    id: 'blockAds',
+    label: 'Block Ads',
+    description: 'Hide sponsored posts in feed',
+  },
+  {
+    id: 'blockRecommendations',
+    label: 'Block Recommendations',
+    description: 'Hide suggested posts and reels',
+  },
+];
 
 async function init(): Promise<void> {
   const enableToggle = document.getElementById('enableToggle') as HTMLInputElement;
-  const blockAdsCheckbox = document.getElementById('blockAds') as HTMLInputElement;
-  const blockRecommendationsCheckbox = document.getElementById(
-    'blockRecommendations',
-  ) as HTMLInputElement;
-  const adsBlockedEl = document.getElementById('adsBlocked') as HTMLSpanElement;
-  const recsBlockedEl = document.getElementById('recsBlocked') as HTMLSpanElement;
+  const featuresList = document.getElementById('featuresList') as HTMLDivElement;
+  const refreshLink = document.getElementById('refreshLink') as HTMLAnchorElement;
 
   // Load current settings
   const settings = (await chrome.storage.sync.get({
@@ -21,65 +38,81 @@ async function init(): Promise<void> {
     blockRecommendations: true,
   })) as Settings;
 
+  // Initialize Master Toggle
   enableToggle.checked = settings.enabled;
-  blockAdsCheckbox.checked = settings.blockAds;
-  blockRecommendationsCheckbox.checked = settings.blockRecommendations;
-
   updateDisabledState(settings.enabled);
 
-  // Get current blocked count from active tab
-  try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (tab?.url?.includes('instagram.com') && tab.id) {
-      const response = (await chrome.tabs.sendMessage(tab.id, {
-        type: 'GET_STATUS',
-      })) as StatusResponse;
-      if (response) {
-        adsBlockedEl.textContent = String(response.blockedCount?.ads || 0);
-        recsBlockedEl.textContent = String(response.blockedCount?.recommendations || 0);
-      }
-    }
-  } catch {
-    // Content script might not be loaded yet
-    console.log('Could not get status from content script');
-  }
-
-  // Toggle extension enabled/disabled
   enableToggle.addEventListener('change', async () => {
     const enabled = enableToggle.checked;
-    await chrome.storage.sync.set({ enabled });
+    await updateSettings({ enabled });
     updateDisabledState(enabled);
-
-    // Notify content script
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      if (tab?.url?.includes('instagram.com') && tab.id) {
-        await chrome.tabs.sendMessage(tab.id, {
-          type: 'TOGGLE_ENABLED',
-          enabled,
-        });
-      }
-    } catch {
-      console.log('Could not toggle content script');
-    }
   });
 
-  // Update block ads setting
-  blockAdsCheckbox.addEventListener('change', async () => {
-    const blockAds = blockAdsCheckbox.checked;
-    await updateSettings({ blockAds });
+  // Render Features dynamically
+  FEATURES.forEach((feature) => {
+    const item = document.createElement('label');
+    item.className = 'feature-item';
+
+    // Checkbox input (hidden but functional)
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'feature-checkbox';
+    checkbox.style.display = 'none'; // Controlled by the switch UI
+    checkbox.checked = !!settings[feature.id];
+
+    // UI Structure
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'feature-info';
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'feature-label';
+    labelSpan.textContent = feature.label;
+
+    const descSpan = document.createElement('span');
+    descSpan.className = 'feature-desc';
+    descSpan.textContent = feature.description;
+
+    infoDiv.appendChild(labelSpan);
+    infoDiv.appendChild(descSpan);
+
+    // Switch UI
+    const switchDiv = document.createElement('div');
+    switchDiv.className = 'switch';
+    const slider = document.createElement('span');
+    slider.className = 'slider round';
+    // We need a visual checkbox for the switch CSS to work or reuse the structure
+    // Since we are generating the structure:
+    /*
+        <label class="feature-item">
+            <div class="feature-info">...</div>
+            <div class="switch">
+                <input type="checkbox">
+                <span class="slider round"></span>
+            </div>
+        </label>
+     */
+    // Let's restructure properly
+    // The event listener should be on the input
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = !!settings[feature.id];
+    input.addEventListener('change', async () => {
+      await updateSettings({ [feature.id]: input.checked });
+    });
+
+    switchDiv.appendChild(input);
+    switchDiv.appendChild(slider);
+
+    item.appendChild(infoDiv);
+    item.appendChild(switchDiv);
+
+    featuresList.appendChild(item);
   });
 
-  // Update block recommendations setting
-  blockRecommendationsCheckbox.addEventListener('change', async () => {
-    const blockRecommendations = blockRecommendationsCheckbox.checked;
-    await updateSettings({ blockRecommendations });
+  // Refresh link
+  refreshLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.reload();
   });
 }
 
@@ -96,9 +129,17 @@ async function updateSettings(settings: Partial<Settings>): Promise<void> {
         type: 'UPDATE_SETTINGS',
         ...settings,
       });
+      // Also send toggle enabled if that's what changed, content script handles both usually via UPDATE_SETTINGS or TOGGLE_ENABLED
+      // The original code had TOGGLE_ENABLED separate, checking if we need to maintain that compatibility
+      if (settings.enabled !== undefined) {
+        await chrome.tabs.sendMessage(tab.id, {
+          type: 'TOGGLE_ENABLED',
+          enabled: settings.enabled,
+        });
+      }
     }
   } catch {
-    console.log('Could not update content script settings');
+    // console.log('Could not update content script settings');
   }
 }
 

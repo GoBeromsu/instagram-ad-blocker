@@ -5,52 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Instagram Blocker</title>
     <link rel="stylesheet" href="popup.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <div class="popup-container">
+    <div class="app-container">
       <header class="header">
-        <h1 class="title">Instagram Blocker</h1>
-        <label class="toggle-switch main-toggle">
-          <input type="checkbox" id="enableToggle" checked />
-          <span class="slider"></span>
-        </label>
+        <h1 class="app-title">Instagram Blocker</h1>
+        <div class="master-switch-container">
+          <label class="switch">
+            <input type="checkbox" id="enableToggle" />
+            <span class="slider round"></span>
+          </label>
+        </div>
       </header>
 
-      <div class="stats">
-        <div class="stat-item">
-          <span class="stat-icon">🚫</span>
-          <div class="stat-info">
-            <span class="stat-value" id="adsBlocked">0</span>
-            <span class="stat-label">Ads Blocked</span>
-          </div>
+      <main class="content">
+        <p class="section-label">Features</p>
+        <div id="featuresList" class="features-list">
+          <!-- Features will be dynamically inserted here -->
         </div>
-        <div class="stat-item">
-          <span class="stat-icon">👁️</span>
-          <div class="stat-info">
-            <span class="stat-value" id="recsBlocked">0</span>
-            <span class="stat-label">Recommendations Blocked</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="settings">
-        <h2 class="settings-title">Settings</h2>
-
-        <label class="setting-item">
-          <span class="setting-label">Block Sponsored Ads</span>
-          <input type="checkbox" id="blockAds" checked />
-          <span class="checkbox-custom"></span>
-        </label>
-
-        <label class="setting-item">
-          <span class="setting-label">Block Recommendations</span>
-          <input type="checkbox" id="blockRecommendations" checked />
-          <span class="checkbox-custom"></span>
-        </label>
-      </div>
+      </main>
 
       <footer class="footer">
-        <p class="footer-text">Refresh page to apply changes</p>
+        <a href="#" id="refreshLink" class="refresh-link">Refresh to apply changes</a>
       </footer>
     </div>
 
