@@ -4,7 +4,7 @@
  */
 
 import type { BlockedType, Detector } from '@/types';
-import { findTextInElement } from '../utils/dom-utils';
+import { findTextInElement } from '@/utils/dom-utils';
 import { SPONSORED_KEYWORDS } from './index';
 
 export class AdDetector implements Detector {

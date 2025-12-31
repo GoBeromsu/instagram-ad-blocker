@@ -11,7 +11,7 @@
  */
 
 import type { BlockedType, Detector } from '@/types';
-import { findClickableWithText, findTextInElement } from '../utils/dom-utils';
+import { findClickableWithText, findTextInElement } from '@/utils/dom-utils';
 import { FOLLOW_BUTTON_KEYWORDS, SUGGESTED_TEXT_KEYWORDS } from './index';
 
 export class SuggestionDetector implements Detector {
