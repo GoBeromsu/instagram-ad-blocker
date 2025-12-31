@@ -5,6 +5,7 @@
 
 import type { BlockedType, Detector } from '@/types';
 import { findTextInElement } from '@/utils/dom-utils';
+import { logger } from '@/utils/logger';
 import { SPONSORED_KEYWORDS } from './index';
 
 export class AdDetector implements Detector {
@@ -21,7 +22,7 @@ export class AdDetector implements Detector {
     const matchedText = findTextInElement(header, SPONSORED_KEYWORDS);
 
     if (matchedText) {
-      console.log('[Instagram Blocker] Sponsored:', matchedText);
+      logger.log('Sponsored:', matchedText);
       return true;
     }
 

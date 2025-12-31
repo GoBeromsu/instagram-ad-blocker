@@ -284,21 +284,12 @@ class InstagramBlocker {
     // Then insert placeholder at the beginning
     el.insertBefore(placeholder, el.firstChild);
 
-    // Update count
+    // Update count (popup will fetch when opened)
     if (type === 'ad') {
       this.blockedCount.ads++;
     } else {
       this.blockedCount.recommendations++;
     }
-
-    // Notify background script
-    chrome.runtime
-      .sendMessage({
-        type: 'POST_BLOCKED',
-        blockedType: type,
-        count: this.blockedCount,
-      })
-      .catch(() => {});
 
     logger.log(`Blocked ${type}`);
   }

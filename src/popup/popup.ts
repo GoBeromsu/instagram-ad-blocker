@@ -3,7 +3,7 @@
  * Popup Script
  */
 
-import type { Settings } from '@/types';
+import type { Settings, StatusResponse } from '@/types';
 
 interface FeatureDef {
   id: keyof Settings;
@@ -35,6 +35,8 @@ async function init(): Promise<void> {
   const enableToggle = document.getElementById('enableToggle') as HTMLInputElement;
   const featuresList = document.getElementById('featuresList') as HTMLDivElement;
   const refreshLink = document.getElementById('refreshLink') as HTMLAnchorElement;
+  const statsSection = document.getElementById('statsSection') as HTMLDivElement;
+  const blockedCountEl = document.getElementById('blockedCount') as HTMLSpanElement;
 
   // Load current settings
   const settings = (await chrome.storage.sync.get({
@@ -43,6 +45,24 @@ async function init(): Promise<void> {
     blockRecommendations: true,
     debugMode: false,
   })) as Settings;
+
+  // Fetch blocked count from content script
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.url?.includes('instagram.com') && tab.id) {
+      const response = (await chrome.tabs.sendMessage(tab.id, {
+        type: 'GET_STATUS',
+      })) as StatusResponse;
+
+      const total = response.blockedCount.ads + response.blockedCount.recommendations;
+      if (total > 0) {
+        blockedCountEl.textContent = total.toString();
+        statsSection.style.display = 'block';
+      }
+    }
+  } catch {
+    // Content script not available
+  }
 
   // Initialize Master Toggle
   enableToggle.checked = settings.enabled;

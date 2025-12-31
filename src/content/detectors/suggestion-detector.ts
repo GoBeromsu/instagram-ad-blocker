@@ -12,6 +12,7 @@
 
 import type { BlockedType, Detector } from '@/types';
 import { findClickableWithText, findTextInElement } from '@/utils/dom-utils';
+import { logger } from '@/utils/logger';
 import { FOLLOW_BUTTON_KEYWORDS, SUGGESTED_TEXT_KEYWORDS } from './index';
 
 export class SuggestionDetector implements Detector {
@@ -27,7 +28,7 @@ export class SuggestionDetector implements Detector {
 
     // Primary: "Follow" button - the real signature
     if (this.hasFollowButton(header)) {
-      console.log('[Instagram Blocker] Recommended (Follow button)');
+      logger.log('Recommended (Follow button)');
       return true;
     }
 
@@ -55,7 +56,7 @@ export class SuggestionDetector implements Detector {
     const matchedText = findTextInElement(header, SUGGESTED_TEXT_KEYWORDS);
 
     if (matchedText) {
-      console.log('[Instagram Blocker] Recommended (Text):', matchedText);
+      logger.log('Recommended (Text):', matchedText);
       return true;
     }
 

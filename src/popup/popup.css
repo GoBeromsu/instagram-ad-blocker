@@ -90,6 +90,30 @@ input:checked + .slider:before {
   transform: translateX(16px);
 }
 
+/* Stats Section */
+.stats-section {
+  padding: 12px 24px;
+  background-color: #e8f0fe;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stats-label {
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.stats-value {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
 /* Content */
 .content {
   padding: 8px 0;
