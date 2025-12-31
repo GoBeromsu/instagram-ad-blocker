@@ -1,120 +1,52 @@
 # Instagram Ad & Recommendation Blocker
 
-Chrome Extension to block sponsored ads and recommended posts from Instagram feed.
+Chrome Extension (Manifest V3) to block sponsored ads and recommended posts from Instagram feed using TypeScript + Vite + CRXJS.
 
-## Project Overview
+## Commands
 
-This extension uses DOM analysis to detect and hide:
-
-- **Sponsored posts (광고)**: Posts marked with "Sponsored" label
-- **Recommended posts (추천)**: "Suggested for you" sections in the feed
-
-## Tech Stack
-
-- **Chrome Extension Manifest V3** (latest standard)
-- **TypeScript** with Vite build system
-- **CRXJS** Vite plugin for Chrome extension development
+```bash
+pnpm install      # Install dependencies
+pnpm dev          # Development mode with HMR
+pnpm build        # Production build
+pnpm lint         # Run ESLint
+pnpm typecheck    # TypeScript type checking
+```
 
 ## Project Structure
 
 ```
-instragram_blocker/
-├── manifest.json              # Chrome Extension Manifest V3
-├── package.json               # Dependencies & npm scripts
-├── pnpm-lock.yaml             # Lock file
-├── tsconfig.json              # TypeScript configuration
-├── vite.config.ts             # Vite + CRXJS build configuration
-├── .gitignore
-├── .mcp.json                  # Playwright MCP (project scope)
-├── CLAUDE.md                  # Project documentation
-│
-├── src/
-│   ├── types/
-│   │   └── index.ts           # Type definitions (Message, Settings, etc.)
-│   │
-│   ├── content/
-│   │   ├── content.ts         # Ad/recommendation detection & blocking logic
-│   │   └── content.css        # Styles for hiding blocked posts
-│   │
-│   ├── background/
-│   │   └── background.ts      # Service worker (badge updates, storage)
-│   │
-│   ├── popup/
-│   │   ├── popup.html         # Extension popup UI
-│   │   ├── popup.css          # Popup styles
-│   │   └── popup.ts           # Popup logic (toggle, settings)
-│   │
-│   └── utils/                 # Shared utilities (reserved)
-│
-├── assets/
-│   └── icons/
-│       ├── icon16.png         # Toolbar icon
-│       ├── icon48.png         # Extension management icon
-│       └── icon128.png        # Chrome Web Store icon
-│
-└── dist/                      # Build output (gitignored)
+src/
+├── types/        # TypeScript type definitions (Message, Settings, etc.)
+├── content/      # Content script - ad/recommendation detection & blocking logic
+├── background/   # Service worker - badge updates, storage management
+├── popup/        # Extension popup UI and settings toggle
+└── utils/        # Shared utilities (logger, dom helpers)
+
+assets/
+└── icons/        # Extension icons (16px, 48px, 128px)
+
+dist/             # Build output (gitignored)
 ```
 
-## Development
+## Detection Logic
+
+- **MutationObserver**: Watches for dynamically loaded posts
+- **Multi-language keyword detection**: See `src/content/detectors/ad-detector.ts` for supported languages
+- **DOM Traversal**: Finds and hides entire post containers
+
+## Development Guidelines
+
+### DOM Analysis with Playwright
+
+Instagram frequently changes their DOM structure. **Use Playwright MCP** for DOM analysis when selectors need updates:
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Development mode (hot reload)
-pnpm dev
-
-# Build for production
-pnpm build
-```
-
-## Loading the Extension
-
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `dist` folder (after build) or project root (during dev)
-
-## Key Features
-
-### Content Script Detection Logic
-
-1. **MutationObserver**: Watches for dynamically loaded posts
-2. **Keyword Detection**: Multi-language support for "Sponsored" text
-   - English, Korean (광고), Spanish, German, French, etc.
-3. **DOM Traversal**: Finds appropriate container to hide entire post
-
-### Supported Languages for Ad Detection
-
-- English: "Sponsored"
-- Korean: "광고"
-- Spanish: "Publicidad"
-- German: "Gesponsert"
-- French: "Sponsorisé"
-- Portuguese: "Patrocinado"
-- Japanese: "広告"
-- Chinese: "贊助" / "赞助"
-
-## MCP Tools
-
-This project uses **Playwright MCP** for browser automation and DOM analysis:
-
-```bash
-# Playwright MCP is configured in .mcp.json (project scope)
+# Playwright MCP is configured in .mcp.json
 npx @playwright/mcp@latest
 ```
 
-## Commands
+### Loading Extension
 
-| Command          | Description                       |
-| ---------------- | --------------------------------- |
-| `pnpm dev`       | Start development server with HMR |
-| `pnpm build`     | Build for production              |
-| `pnpm lint`      | Run ESLint                        |
-| `pnpm typecheck` | Run TypeScript type checking      |
-
-## Notes
-
-- Instagram frequently changes their DOM structure
-- Selectors may need updates if blocking stops working
-- Use Playwright MCP or browser DevTools to analyze current DOM structure
+1. Navigate to `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked" → select `dist` folder
